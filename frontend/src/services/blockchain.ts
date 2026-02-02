@@ -1,23 +1,24 @@
-import { ethers } from 'ethers';
+import { ethers } from "ethers";
 
-// Contract ABI - Interface definition for our ExampleContract
 const CONTRACT_ABI = [
-  "function setValue(string calldata _value) external",
-  "function getValue() external view returns (string memory)",
-  "event ValueUpdated(string newValue)"
+  "function register(string memory _name, string memory _rollNumber) public",
+  "function getStudent(address _studentAddress) public view returns (string,string)",
+  "event StudentRegistered(address indexed studentAddress, string name, string rollNumber)"
 ];
 
-// Default contract address (will be updated when we deploy)
 const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
-// Local blockchain URL
-const RPC_URL = "http://127.0.0.1:8545";
+// Use environment variable for RPC URL, fallback to localhost
+const RPC_URL = import.meta.env.VITE_RPC_URL || "http://127.0.0.1:8545";
+
+console.log("🔗 Connecting to RPC:", RPC_URL);
 
 export interface BlockchainTransaction {
   hash: string;
   blockNumber: number;
   timestamp: number;
-  value: string;
+  name: string;
+  rollNumber: string;
   from: string;
 }
 
@@ -31,158 +32,159 @@ export interface BlockInfo {
 class BlockchainService {
   private provider: ethers.JsonRpcProvider;
   private contract: ethers.Contract;
-  private signer: ethers.JsonRpcSigner | null = null;
 
   constructor() {
     this.provider = new ethers.JsonRpcProvider(RPC_URL);
     this.contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, this.provider);
   }
 
-  // Initialize connection and get signer
-  async initialize(): Promise<void> {
-    try {
-      // Get the first account from local blockchain
-      const accounts = await this.provider.listAccounts();
-      if (accounts.length > 0) {
-        this.signer = await this.provider.getSigner(0);
-        this.contract = this.contract.connect(this.signer);
-      }
-    } catch (error) {
-      console.error('Failed to initialize blockchain connection:', error);
-      throw error;
-    }
+  async initialize() {
+    // This method is kept for compatibility but not needed anymore
   }
 
-  // Check if connected to blockchain
-  async isConnected(): Promise<boolean> {
+  async isConnected() {
     try {
       await this.provider.getBlockNumber();
+      console.log("✅ Connected to blockchain");
       return true;
     } catch (error) {
+      console.error("❌ Failed to connect to blockchain:", error);
       return false;
     }
   }
 
-  // Submit identity to blockchain
-  async submitIdentity(name: string): Promise<{ hash: string; blockNumber: number }> {
-    if (!this.signer) {
-      await this.initialize();
+  // Check if an account has already registered a student
+  async isAccountRegistered(address: string): Promise<boolean> {
+    try {
+      const result = await this.contract.getStudent(address);
+      // If name is not empty, the account is registered
+      return result[0] !== "";
+    } catch {
+      return false;
+    }
+  }
+
+  // Find the first available (unregistered) account
+  async findAvailableAccount() {
+    const accounts = await this.provider.listAccounts();
+    
+    if (accounts.length === 0) {
+      throw new Error("No accounts available");
     }
 
-    try {
-      const tx = await this.contract.setValue(name);
-      const receipt = await tx.wait();
+    // Check each account to find one that hasn't registered yet
+    for (let i = 0; i < accounts.length; i++) {
+      const accountAddress = accounts[i].address;
+      const isRegistered = await this.isAccountRegistered(accountAddress);
       
-      return {
-        hash: receipt.hash,
-        blockNumber: receipt.blockNumber
-      };
-    } catch (error) {
-      console.error('Failed to submit identity:', error);
-      throw error;
+      if (!isRegistered) {
+        console.log(`📝 Using account ${i}: ${accountAddress}`);
+        return i; // Return the index of the first available account
+      }
     }
+
+    // If all accounts are used, throw an error
+    throw new Error("All available accounts have already registered students. Please restart the Hardhat node to reset.");
   }
 
-  // Get current stored value
-  async getCurrentValue(): Promise<string> {
-    try {
-      return await this.contract.getValue();
-    } catch (error) {
-      console.error('Failed to get current value:', error);
-      return '';
-    }
+  async submitIdentity(name: string, roll: string) {
+    // Find an available account
+    const accountIndex = await this.findAvailableAccount();
+    
+    // Get the signer for this account
+    const signer = await this.provider.getSigner(accountIndex);
+
+    // Create contract instance with this specific signer
+    const contractWithSigner = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    
+    // Submit the transaction
+    const tx = await contractWithSigner.register(name, roll);
+    const receipt = await tx.wait();
+    
+    console.log("✅ Transaction confirmed:", receipt.hash);
+    
+    return { 
+      hash: receipt.hash, 
+      blockNumber: receipt.blockNumber 
+    };
   }
 
-  // Get all ValueUpdated events
   async getAllIdentities(): Promise<BlockchainTransaction[]> {
     try {
-      const filter = this.contract.filters.ValueUpdated();
+      const filter = this.contract.filters.StudentRegistered();
       const events = await this.contract.queryFilter(filter);
-      
-      const transactions: BlockchainTransaction[] = [];
-      
-      for (const event of events) {
-        if (event.blockNumber && event.transactionHash) {
-          const block = await this.provider.getBlock(event.blockNumber);
-          const tx = await this.provider.getTransaction(event.transactionHash);
-          
-          transactions.push({
-            hash: event.transactionHash,
-            blockNumber: event.blockNumber,
-            timestamp: block?.timestamp || 0,
-            value: event.args?.[0] || '',
-            from: tx?.from || ''
-          });
-        }
+      const list: BlockchainTransaction[] = [];
+
+      for (const e of events) {
+        if (!e.blockNumber || !e.transactionHash) continue;
+        const block = await this.provider.getBlock(e.blockNumber);
+        const tx = await this.provider.getTransaction(e.transactionHash);
+        const isEventLog = 'args' in e;
+
+        list.push({
+          hash: e.transactionHash,
+          blockNumber: e.blockNumber,
+          timestamp: block?.timestamp || 0,
+          name: isEventLog ? (e.args?.name || "") : "",
+          rollNumber: isEventLog ? (e.args?.rollNumber || "") : "",
+          from: tx?.from || ""
+        });
       }
-      
-      return transactions.sort((a, b) => b.blockNumber - a.blockNumber);
-    } catch (error) {
-      console.error('Failed to get identities:', error);
+      return list.sort((a, b) => b.blockNumber - a.blockNumber);
+    } catch {
       return [];
     }
   }
 
-  // Get blockchain blocks with transaction data
   async getBlocks(): Promise<BlockInfo[]> {
     try {
-      const currentBlock = await this.provider.getBlockNumber();
+      const current = await this.provider.getBlockNumber();
       const blocks: BlockInfo[] = [];
-      
-      // Get last 10 blocks or all blocks if less than 10
-      const startBlock = Math.max(1, currentBlock - 9);
-      
-      for (let i = currentBlock; i >= startBlock; i--) {
+      const start = Math.max(1, current - 9);
+
+      for (let i = current; i >= start; i--) {
         const block = await this.provider.getBlock(i, true);
-        if (block) {
-          const blockTransactions: BlockchainTransaction[] = [];
-          
-          // Filter transactions related to our contract
-          for (const tx of block.transactions) {
-            if (typeof tx === 'object' && tx.to?.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()) {
-              // Try to decode the transaction data
-              try {
-                const receipt = await this.provider.getTransactionReceipt(tx.hash);
-                if (receipt) {
-                  const logs = await this.contract.queryFilter(
-                    this.contract.filters.ValueUpdated(),
-                    receipt.blockNumber,
-                    receipt.blockNumber
-                  );
-                  
-                  const relevantLog = logs.find(log => log.transactionHash === tx.hash);
-                  if (relevantLog) {
-                    blockTransactions.push({
-                      hash: tx.hash,
-                      blockNumber: i,
-                      timestamp: block.timestamp,
-                      value: relevantLog.args?.[0] || '',
-                      from: tx.from
-                    });
-                  }
-                }
-              } catch (error) {
-                // Skip transactions we can't decode
-                console.warn('Could not decode transaction:', tx.hash);
-              }
-            }
+        if (!block) continue;
+        const txs: BlockchainTransaction[] = [];
+
+        for (const tx of block.transactions) {
+          if (typeof tx === "object" && tx !== null && tx.to?.toLowerCase() === CONTRACT_ADDRESS.toLowerCase()) {
+            const receipt = await this.provider.getTransactionReceipt(tx.hash);
+            if (!receipt) continue;
+
+            const logs = await this.contract.queryFilter(
+              this.contract.filters.StudentRegistered(),
+              receipt.blockNumber,
+              receipt.blockNumber
+            );
+            const log = logs.find(l => l.transactionHash === tx.hash);
+            if (!log) continue;
+
+            const isEventLog = 'args' in log;
+            txs.push({
+              hash: tx.hash,
+              blockNumber: i,
+              timestamp: block.timestamp,
+              name: isEventLog ? (log.args?.name || "") : "",
+              rollNumber: isEventLog ? (log.args?.rollNumber || "") : "",
+              from: tx.from
+            });
           }
-          
-          blocks.push({
-            number: i,
-            timestamp: block.timestamp,
-            hash: block.hash || '',
-            transactions: blockTransactions
-          });
         }
+
+        blocks.push({
+          number: i,
+          timestamp: block.timestamp,
+          hash: block.hash || "",
+          transactions: txs
+        });
       }
-      
       return blocks;
-    } catch (error) {
-      console.error('Failed to get blocks:', error);
+    } catch {
       return [];
     }
   }
 }
 
+export { BlockchainService };
 export const blockchainService = new BlockchainService();

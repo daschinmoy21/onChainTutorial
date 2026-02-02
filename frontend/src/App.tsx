@@ -9,7 +9,7 @@ import './App.css';
 
 const Navigation: React.FC = () => {
   const location = useLocation();
-
+  
   // Hide navigation on intro page for cleaner experience
   if (location.pathname === '/') {
     return null;
@@ -23,6 +23,7 @@ const Navigation: React.FC = () => {
         </div>
         <h1>Blockchain Identity Ledger</h1>
       </div>
+      
       <div className="nav-links">
         <Link 
           to="/" 
@@ -31,6 +32,7 @@ const Navigation: React.FC = () => {
           <Home size={18} />
           Home
         </Link>
+        
         <Link 
           to="/identity" 
           className={`nav-link ${location.pathname === '/identity' ? 'active' : ''}`}
@@ -38,6 +40,7 @@ const Navigation: React.FC = () => {
           <User size={18} />
           Add Identity
         </Link>
+        
         <Link 
           to="/explorer" 
           className={`nav-link ${location.pathname === '/explorer' ? 'active' : ''}`}
@@ -46,6 +49,7 @@ const Navigation: React.FC = () => {
           Blockchain Explorer
         </Link>
       </div>
+      
       <div className="nav-status">
         <ConnectionStatus />
       </div>
@@ -75,7 +79,7 @@ function App() {
         </div>
 
         <Navigation />
-        
+
         <main className="main-content">
           <Routes>
             <Route path="/" element={<IntroPage />} />
