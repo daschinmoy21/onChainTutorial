@@ -19,3 +19,4 @@ contract ExampleContract {
         return value;
     }
 }
+
