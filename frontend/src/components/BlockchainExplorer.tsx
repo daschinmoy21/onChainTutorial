@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RotateCw, Archive, User, Hash, Clock, Layers, AlertTriangle, Inbox } from 'lucide-react';
+import { RotateCw, Archive, User, Hash, Clock, Layers, AlertTriangle, Inbox, BookOpen, Database, FileText, Fingerprint } from 'lucide-react';
 import { blockchainService } from '../services/blockchain';
 import type { BlockInfo, BlockchainTransaction } from '../services/blockchain';
 
@@ -81,8 +81,15 @@ export const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ refreshT
 
   if (error) {
     return (
-      <div className="blockchain-explorer error">
-        <div className="error-message">
+      <div className="blockchain-explorer">
+        <div className="explorer-header">
+          <h2>
+            <Archive size={32} style={{ display: 'inline' }} />
+            Live Blockchain Data
+          </h2>
+        </div>
+
+        <div className="error-message-box">
           <span className="error-icon">
             <AlertTriangle size={32} />
           </span>
@@ -93,6 +100,40 @@ export const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ refreshT
               <RotateCw size={16} />
               Retry Connection
             </button>
+          </div>
+        </div>
+
+        {/* Info Section - Always visible */}
+        <div className="info-box explorer-info-box">
+          <h3>
+            <BookOpen size={20} />
+            What is a Blockchain Explorer?
+          </h3>
+          <p className="info-description">
+            A blockchain explorer is like a search engine for the blockchain. It allows you to 
+            view and verify all transactions, blocks, and data stored on the network in real-time.
+          </p>
+          <div className="info-grid">
+            <div className="info-card">
+              <Database size={24} className="info-card-icon" />
+              <strong>Blocks</strong>
+              <span>Containers that store batches of transactions, each linked to the previous block forming an unbreakable chain.</span>
+            </div>
+            <div className="info-card">
+              <FileText size={24} className="info-card-icon" />
+              <strong>Transactions</strong>
+              <span>Individual records of data changes on the blockchain. Each transaction has a unique hash for verification.</span>
+            </div>
+            <div className="info-card">
+              <Fingerprint size={24} className="info-card-icon" />
+              <strong>Hash</strong>
+              <span>A unique digital fingerprint generated from data. Even a tiny change produces a completely different hash.</span>
+            </div>
+            <div className="info-card">
+              <Clock size={24} className="info-card-icon" />
+              <strong>Timestamp</strong>
+              <span>The exact moment when a transaction was recorded, providing an immutable audit trail of all activities.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -271,6 +312,40 @@ export const BlockchainExplorer: React.FC<BlockchainExplorerProps> = ({ refreshT
           Refreshing...
         </div>
       )}
+
+      {/* Info Section - About Blockchain Explorer */}
+      <div className="info-box explorer-info-box">
+        <h3>
+          <BookOpen size={20} />
+          What is a Blockchain Explorer?
+        </h3>
+        <p className="info-description">
+          A blockchain explorer is like a search engine for the blockchain. It allows you to 
+          view and verify all transactions, blocks, and data stored on the network in real-time.
+        </p>
+        <div className="info-grid">
+          <div className="info-card">
+            <Database size={24} className="info-card-icon" />
+            <strong>Blocks</strong>
+            <span>Containers that store batches of transactions, each linked to the previous block forming an unbreakable chain.</span>
+          </div>
+          <div className="info-card">
+            <FileText size={24} className="info-card-icon" />
+            <strong>Transactions</strong>
+            <span>Individual records of data changes on the blockchain. Each transaction has a unique hash for verification.</span>
+          </div>
+          <div className="info-card">
+            <Fingerprint size={24} className="info-card-icon" />
+            <strong>Hash</strong>
+            <span>A unique digital fingerprint generated from data. Even a tiny change produces a completely different hash.</span>
+          </div>
+          <div className="info-card">
+            <Clock size={24} className="info-card-icon" />
+            <strong>Timestamp</strong>
+            <span>The exact moment when a transaction was recorded, providing an immutable audit trail of all activities.</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, CheckCircle, Clock, AlertCircle, Sparkles, BookOpen, Hash, Layers } from 'lucide-react';
+import { Send, CheckCircle, Clock, AlertCircle, UserPlus, BookOpen, Hash, Layers, Database, Lock } from 'lucide-react';
 import { blockchainService } from '../services/blockchain';
 
 interface IdentityFormProps {
@@ -66,7 +66,7 @@ export const IdentityForm: React.FC<IdentityFormProps> = ({ onTransactionSubmitt
     <div className="identity-form">
       <div className="form-header">
         <h2>
-          <Sparkles size={32} style={{ display: 'inline' }} />
+          <UserPlus size={32} style={{ display: 'inline' }} />
           Add Your Identity
         </h2>
         <p>Submit your name to the blockchain ledger</p>
@@ -150,17 +150,37 @@ export const IdentityForm: React.FC<IdentityFormProps> = ({ onTransactionSubmitt
         </div>
       )}
 
-      <div className="info-box">
+      <div className="info-box explorer-info-box">
         <h3>
           <BookOpen size={20} />
           What happens next?
         </h3>
-        <ul>
-          <li>Your name is stored permanently on the blockchain</li>
-          <li>The transaction gets a unique hash (fingerprint)</li>
-          <li>Data is included in a numbered block</li>
-          <li>Once confirmed, it cannot be edited or deleted</li>
-        </ul>
+        <p className="info-description">
+          When you submit your identity, it gets permanently recorded on the blockchain through a secure, 
+          transparent process that cannot be reversed or tampered with.
+        </p>
+        <div className="info-grid">
+          <div className="info-card">
+            <Database size={24} className="info-card-icon" />
+            <strong>Permanent Storage</strong>
+            <span>Your name is stored permanently on the blockchain, creating an immutable record that lasts forever.</span>
+          </div>
+          <div className="info-card">
+            <Hash size={24} className="info-card-icon" />
+            <strong>Unique Hash</strong>
+            <span>The transaction gets a unique hash (fingerprint) that can be used to verify and track it.</span>
+          </div>
+          <div className="info-card">
+            <Layers size={24} className="info-card-icon" />
+            <strong>Block Inclusion</strong>
+            <span>Your data is included in a numbered block, linked to all previous blocks in the chain.</span>
+          </div>
+          <div className="info-card">
+            <Lock size={24} className="info-card-icon" />
+            <strong>Immutable</strong>
+            <span>Once confirmed, the data cannot be edited, deleted, or tampered with by anyone.</span>
+          </div>
+        </div>
       </div>
     </div>
   );
