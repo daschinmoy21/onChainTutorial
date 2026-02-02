@@ -1,35 +1,81 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Blocks, User, HelpCircle } from 'lucide-react';
+import { IdentityPage } from './pages/IdentityPage';
+import { ExplorerPage } from './pages/ExplorerPage';
+import { ConnectionStatus } from './components/ConnectionStatus';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const Navigation: React.FC = () => {
+  const location = useLocation();
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <nav className="navigation">
+      <div className="nav-brand">
+        <div className="brand-icon">
+          <Blocks size={20} />
+        </div>
+        <h1>Blockchain Identity Ledger</h1>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+      <div className="nav-links">
+        <Link 
+          to="/" 
+          className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+        >
+          <User size={18} />
+          Add Identity
+        </Link>
+        <Link 
+          to="/explorer" 
+          className={`nav-link ${location.pathname === '/explorer' ? 'active' : ''}`}
+        >
+          <Blocks size={18} />
+          Blockchain Explorer
+        </Link>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+      <div className="nav-status">
+        <ConnectionStatus />
+      </div>
+    </nav>
+  );
+};
+
+const HelpSection: React.FC = () => {
+  return (
+    <div className="help-section">
+      <h3>
+        <HelpCircle size={20} />
+        How it works
+      </h3>
+      <ul>
+        <li><strong>Add Identity:</strong> Submit your name to the blockchain permanently</li>
+        <li><strong>Explorer:</strong> View all stored identities and blockchain structure</li>
+        <li><strong>Immutable:</strong> Once submitted, data cannot be changed or deleted</li>
+        <li><strong>Transparent:</strong> All data is publicly viewable on the blockchain</li>
+      </ul>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <div className="app">
+        <Navigation />
+        
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<IdentityPage />} />
+            <Route path="/explorer" element={<ExplorerPage />} />
+          </Routes>
+        </main>
+
+        <aside className="sidebar">
+          <HelpSection />
+        </aside>
+      </div>
+    </Router>
+  );
 }
 
-export default App
+export default App;
